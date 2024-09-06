@@ -15,9 +15,6 @@ export function FileUploadDemo() {
       <div className="p-52">
         <FileUpload onChange={handleFileUpload} />
       </div>
-      <div className="flex justify-end mt-4">
-        <SubmitButton />
-      </div>
     </>
   );
 }

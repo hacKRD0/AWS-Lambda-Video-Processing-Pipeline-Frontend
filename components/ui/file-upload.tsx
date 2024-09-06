@@ -3,6 +3,8 @@ import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { IconUpload, IconX } from '@tabler/icons-react';
 import { useDropzone } from 'react-dropzone';
+import { v4 as uuid4 } from 'uuid';
+import { useAuth, useUser } from '@clerk/nextjs';
 
 const mainVariant = {
   initial: {
@@ -31,20 +33,31 @@ export const FileUpload = ({
   onChange?: (files: File[]) => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
+  // const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (newFiles: File[]) => {
-    const filteredFiles = newFiles.filter(
-      (file) => file.size <= 5 * 1024 * 1024
-    ); // 5MB limit
-    setFiles((prevFiles) => {
-      const updatedFiles = [...prevFiles, ...filteredFiles];
-      if (updatedFiles.length > 5) {
-        return updatedFiles.slice(0, 5); // Limit to 5 files
+    let selectedFile = newFiles[0];
+
+    const randomId = uuid4();
+    console.log('Random id ---->', randomId);
+    console.log(newFiles);
+
+    const renamedFile = new File(
+      [selectedFile],
+      randomId + '.' + selectedFile.name.split('.').pop(),
+      {
+        type: selectedFile.type,
+        // size: selectedFile.size,
+        lastModified: selectedFile.lastModified,
       }
-      return updatedFiles;
-    });
-    onChange && onChange(filteredFiles);
+    );
+
+    setFiles([renamedFile]);
+
+    console.log('Selected file:', renamedFile);
+
+    onChange && onChange([renamedFile]);
   };
 
   const handleRemoveFile = (index: number) => {
@@ -53,6 +66,61 @@ export const FileUpload = ({
 
   const handleClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleSubmit = async () => {
+    try {
+      // setUploading(true);
+
+      const { user } = useUser();
+      console.log(user);
+
+      const payload = {
+        bucketName: process.env.REACT_APP_S3_BUCKET_INPUT,
+        key: files[0].name,
+        contentType: files[0].type,
+        uid: user?.id,
+        useremail: user?.primaryEmailAddress?.emailAddress,
+      };
+
+      const response = await fetch(process.env.AWS_PRESIGNED_LAMBDA_URL || '', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        console.log(`Error! status: ${response.status}`);
+      }
+
+      const responseObj = await response.json();
+      const presignedUrl = responseObj.presignedUrl;
+      console.log('Pre signed Url ----> ', presignedUrl);
+
+      if (presignedUrl) {
+        // const response = await fetch(presignedUrl, {
+        //   method: 'PUT',
+        //   body: files[0],
+        //   headers: {
+        //     'Content-Type': files[0].type,
+        //   },
+        // });
+        // if (!response.ok) {
+        //   console.error(`Error uploading to s3 ${response.error}`);
+        // }
+        // setUploading(false);
+        // setNotificationMessage(
+        //   'File Uploaded. Email notification will be sent after processing!!!'
+        // );
+        // setShowMessage(true);
+        // setFiles([]);
+      }
+    } catch (error) {
+      console.log(error);
+      // setUploading(false);
+    }
   };
 
   const { getRootProps, isDragActive } = useDropzone({
@@ -187,7 +255,11 @@ export const FileUpload = ({
         </div>
       </motion.div>
       <div className="flex items-center justify-center">
-        <button className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50">
+        <button
+          onClick={handleSubmit}
+          // disabled={!files.length || uploading}
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+        >
           Submit
         </button>
       </div>

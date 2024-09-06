@@ -3,10 +3,10 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest } from "next/server";
 
 const client = new S3Client({
-    region: process.env.S3_REGION,
+    region: process.env.AWS_REGION,
     // credentials: {
-    //     accessKeyId: process.env.S3_ACCESS_KEY,
-    //     secretAccessKey: process.env.S3_SECRET_KEY,
+    //     accessKeyId: process.env.AWS_PUBLIC_ACCESS_KEY,
+    //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     // },
 });
 
@@ -22,12 +22,18 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    console.log(file);
+
     const command = new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: process.env.ASU_ID + '-input',
         Key: file,
     });
 
     const url = await getSignedUrl(client, command, { expiresIn: 60 });
 
+    console.log(Response.error)
+    console.log(Response.json)
+    console.log(Response.redirect);
+    console.log(url)
     return Response.json({ presignedUrl: url });
 }
