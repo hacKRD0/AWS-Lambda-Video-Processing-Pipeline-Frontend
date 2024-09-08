@@ -11,3 +11,15 @@ const nextConfig = {
     ],
   },
 };
+
+export default {
+  async rewrites() {
+    return [
+      {
+        source: '/api/lambda', // Path in your Next.js app
+        destination:
+          'https://3a6iacfzvfqw6l5gofml74pp7m0sfdft.lambda-url.us-east-1.on.aws/', // The external AWS Lambda URL
+      },
+    ];
+  },
+};

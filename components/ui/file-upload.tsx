@@ -33,7 +33,7 @@ export const FileUpload = ({
   onChange?: (files: File[]) => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
-  // const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (newFiles: File[]) => {
@@ -68,58 +68,78 @@ export const FileUpload = ({
     fileInputRef.current?.click();
   };
 
+  const { user } = useUser();
+  const { userId } = useAuth();
+  // console.log(user);
+  // console.log(userId);
+  const userEmail = user?.primaryEmailAddress?.emailAddress;
+  // console.log(userEmail);
+
   const handleSubmit = async () => {
     try {
-      // setUploading(true);
-
-      const { user } = useUser();
-      console.log(user);
+      setUploading(true);
 
       const payload = {
-        bucketName: process.env.REACT_APP_S3_BUCKET_INPUT,
+        bucketName: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME,
         key: files[0].name,
         contentType: files[0].type,
-        uid: user?.id,
-        useremail: user?.primaryEmailAddress?.emailAddress,
+        uid: userId,
+        useremail: userEmail,
       };
 
-      const response = await fetch(process.env.AWS_PRESIGNED_LAMBDA_URL || '', {
+      console.log('Payload -->', payload);
+
+      const lambdaUrl = '/api/lambda';
+
+      console.log('Lambdaurl --->', lambdaUrl);
+
+      const response = await fetch(lambdaUrl, {
         method: 'POST',
         headers: {
           'Content-type': 'application/json',
+          'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+          'Access-Control-Allow-Credentials': 'true', // Required for cookies, authorization headers with HTTPS
         },
         body: JSON.stringify(payload),
       });
 
+      console.log('Response -->', response);
       if (!response.ok) {
         console.log(`Error! status: ${response.status}`);
       }
 
       const responseObj = await response.json();
+      console.log('Response object --->', responseObj);
       const presignedUrl = responseObj.presignedUrl;
       console.log('Pre signed Url ----> ', presignedUrl);
+      console.log('File ----->', files[0]);
 
       if (presignedUrl) {
-        // const response = await fetch(presignedUrl, {
-        //   method: 'PUT',
-        //   body: files[0],
-        //   headers: {
-        //     'Content-Type': files[0].type,
-        //   },
-        // });
-        // if (!response.ok) {
-        //   console.error(`Error uploading to s3 ${response.error}`);
-        // }
-        // setUploading(false);
+        const formData = await new FormData();
+        formData.append('file', files[0]);
+        formData.append('presignedUrl', presignedUrl);
+        const response = await fetch('/api/proxy-upload', {
+          method: 'PUT',
+          body: formData,
+          headers: {
+            // 'Content-Type': files[0].type,
+            'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+            'Access-Control-Allow-Credentials': 'true', // Required for cookies, authorization headers with HTTPS
+          },
+        });
+        if (!response.ok) {
+          console.error(`Error uploading to s3 ${response.error}`);
+        }
+        setUploading(false);
         // setNotificationMessage(
         //   'File Uploaded. Email notification will be sent after processing!!!'
         // );
         // setShowMessage(true);
-        // setFiles([]);
+        setFiles([]);
       }
     } catch (error) {
+      setUploading(false);
       console.log(error);
-      // setUploading(false);
     }
   };
 
@@ -257,7 +277,7 @@ export const FileUpload = ({
       <div className="flex items-center justify-center">
         <button
           onClick={handleSubmit}
-          // disabled={!files.length || uploading}
+          disabled={!files.length || uploading}
           className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
         >
           Submit
