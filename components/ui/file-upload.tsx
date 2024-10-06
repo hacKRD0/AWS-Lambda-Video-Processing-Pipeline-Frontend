@@ -78,10 +78,11 @@ export const FileUpload = ({
   const handleSubmit = async () => {
     try {
       setUploading(true);
+      const key = userId + '/' + files[0].name;
 
       const payload = {
         bucketName: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME,
-        key: files[0].name,
+        key: key,
         contentType: files[0].type,
         uid: userId,
         useremail: userEmail,
@@ -89,7 +90,7 @@ export const FileUpload = ({
 
       console.log('Payload -->', payload);
 
-      const lambdaUrl = '/api/lambda';
+      const lambdaUrl = '/api/lambda/getPresignedUrl';
 
       console.log('Lambdaurl --->', lambdaUrl);
 

@@ -16,9 +16,16 @@ export default {
   async rewrites() {
     return [
       {
-        source: '/api/lambda', // Path in your Next.js app
-        destination:
-          'https://3a6iacfzvfqw6l5gofml74pp7m0sfdft.lambda-url.us-east-1.on.aws/', // The external AWS Lambda URL
+        source: '/api/lambda/getPresignedUrl', // Path in the Next.js app
+        destination: process.env.NEXT_PUBLIC_AWS_PRESIGNED_LAMBDA_URL, // The external AWS Lambda URL for getting a presigned URL
+      },
+      {
+        source: '/api/lambda/deleteS3Result', // Path in the Next.js app
+        destination: process.env.NEXT_PUBLIC_AWS_DELETES3RESULT_LAMBDA_URL, // The external AWS Lambda URL for deleting S3 results
+      },
+      {
+        source: '/api/lambda/getS3Results', // Path in the Next.js app
+        destination: process.env.NEXT_PUBLIC_AWS_GETS3RESULTS_LAMBDA_URL, // The external AWS Lambda URL for getting S3 results
       },
     ];
   },
